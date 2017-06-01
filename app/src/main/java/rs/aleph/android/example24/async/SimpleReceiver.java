@@ -31,6 +31,23 @@ public class SimpleReceiver extends BroadcastReceiver{
 
     private static int notificationID = 1;
 
+    /**
+     * Moramo pozvati unutar BroadcastReceiver-a zato sto on ima vezu ka nasoj aktivnosti
+     * gde se lista zapravo nalazi.
+     * */
+    private void readFileAndFillList(Context context){
+        // Load product names from array resource
+
+        String[] products = ReviewerTools.readFromFile(context,"myfile.txt").split("\n");
+
+        // Create an ArrayAdaptar from the array of Strings
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(context, R.layout.list_item, products);
+        ListView listView = (ListView) ((Activity)context).findViewById(R.id.products);
+
+        // Assign adapter to ListView
+        listView.setAdapter(adapter);
+    }
+
     @Override
     /**
      * Intent je bitan parametar za BroadcastReceiver. Kada posaljemo neku poruku,
@@ -55,6 +72,8 @@ public class SimpleReceiver extends BroadcastReceiver{
                 int resultCode = intent.getExtras().getInt("RESULT_CODE");
                 prepareNotification(resultCode, context);
             }
+
+            readFileAndFillList(context);
         }
     }
 

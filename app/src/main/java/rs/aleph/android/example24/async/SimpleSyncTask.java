@@ -59,19 +59,6 @@ public class SimpleSyncTask extends AsyncTask<Integer, Void, Integer>{
         return params[0];
     }
 
-    private void readFileAndFillList(){
-        // Load product names from array resource
-
-        String[] products = ReviewerTools.readFromFile(context,"myfile.txt").split("\n");
-
-        // Create an ArrayAdaptar from the array of Strings
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(context, R.layout.list_item, products);
-        ListView listView = (ListView) ((Activity)context).findViewById(R.id.products);
-
-        // Assign adapter to ListView
-        listView.setAdapter(adapter);
-    }
-
     /**
      *
      * Kada se posao koji se odvija u pozadini zavrsi, poziva se ova metoda
@@ -95,7 +82,5 @@ public class SimpleSyncTask extends AsyncTask<Integer, Void, Integer>{
         Intent ints = new Intent("SYNC_DATA");
         ints.putExtra("RESULT_CODE", type);
         context.sendBroadcast(ints);
-
-        readFileAndFillList();
     }
 }
