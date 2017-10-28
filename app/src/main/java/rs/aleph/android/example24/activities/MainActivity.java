@@ -1,5 +1,6 @@
 package rs.aleph.android.example24.activities;
 
+import android.Manifest;
 import android.app.AlarmManager;
 import android.app.FragmentTransaction;
 import android.app.PendingIntent;
@@ -7,9 +8,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -48,6 +52,8 @@ import rs.aleph.android.example24.model.NavigationItem;
 import rs.aleph.android.example24.tools.ReviewerTools;
 
 public class MainActivity extends AppCompatActivity implements OnProductSelectedListener {
+
+    private static final String TAG = "PERMISSIONS";
 
     /* The click listner for ListView in the navigation drawer */
     private class DrawerItemClickListener implements ListView.OnItemClickListener {
@@ -172,6 +178,53 @@ public class MainActivity extends AppCompatActivity implements OnProductSelected
     }
 
     /**
+     * Od verzije Marshmallow Android uvodi pojam dinamickih permisija
+     * Sto korisnicima olaksva rad, a programerima uvodi dodadan posao.
+     * Cela ideja ja u tome, da se permisije ili prava da aplikcija
+     * nesto uradi, ne zahtevaju prilikom instalacije, nego prilikom
+     * prve upotrebe te funkcionalnosti. To za posledicu ima da mi
+     * svaki put moramo da proverimo da li je odredjeno pravo dopustneo
+     * ili ne. Iako nije da ponovo trazimo da korisnik dopusti, u protivnom
+     * tu funkcionalnost necemo obaviti uopste.
+     * */
+    public  boolean isStoragePermissionGranted() {
+        if (Build.VERSION.SDK_INT >= 23) {
+            if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    == PackageManager.PERMISSION_GRANTED &&
+                    checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
+                            == PackageManager.PERMISSION_GRANTED) {
+                Log.v(TAG,"Permission is granted");
+                return true;
+            } else {
+
+                Log.v(TAG,"Permission is revoked");
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                        Manifest.permission.READ_EXTERNAL_STORAGE}, 1);
+                return false;
+            }
+        }
+        else { //permission is automatically granted on sdk<23 upon installation
+            Log.v(TAG,"Permission is granted");
+            return true;
+        }
+    }
+
+    /**
+     *
+     * Ako odredjena funkcija nije dopustena, saljemo zahtev android
+     * sistemu da zahteva odredjene permisije. Korisniku seprikazuje
+     * diloag u kom on zeli ili ne da dopusti odedjene permisije.
+     */
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if(grantResults[0]== PackageManager.PERMISSION_GRANTED
+                && grantResults[1] == PackageManager.PERMISSION_GRANTED){
+            Log.v(TAG,"Permission: "+permissions[0]+ "was "+grantResults[0]);
+        }
+    }
+
+    /**
      *
      * Metoda koja je izmenjena da reflektuje rad sa Asinhronim zadacima
      */
@@ -179,17 +232,23 @@ public class MainActivity extends AppCompatActivity implements OnProductSelected
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_refresh:
-                String text = ReviewerTools.readFromFile(this, "myfile.txt");
-                Toast.makeText(this, text, Toast.LENGTH_SHORT).show();
+                if (isStoragePermissionGranted()) {
+                    String text = ReviewerTools.readFromFile(this, "myfile.txt");
+                    Toast.makeText(this, text, Toast.LENGTH_SHORT).show();
+                }
                 break;
             case R.id.action_add:
-                ReviewerTools.writeToFile(new Date().toString(), this, "myfile.txt");
-                break;
+                if (isStoragePermissionGranted()) {
+                    ReviewerTools.writeToFile(new Date().toString(), this, "myfile.txt");
+                    break;
+                }
             case R.id.test:
-                if (ReviewerTools.isFileExists(MainActivity.this, "myfile.txt")){
-                    Toast.makeText(this, "Fajl postoji", Toast.LENGTH_SHORT).show();
-                }else{
-                    Toast.makeText(this, "Fajl ne postoji", Toast.LENGTH_SHORT).show();
+                if (isStoragePermissionGranted()) {
+                    if (ReviewerTools.isFileExists(MainActivity.this, "myfile.txt")) {
+                        Toast.makeText(this, "Fajl postoji", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(this, "Fajl ne postoji", Toast.LENGTH_SHORT).show();
+                    }
                 }
                 break;
         }
